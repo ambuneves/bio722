@@ -1,38 +1,39 @@
 #R Script for Group Project#
 
-#Some packages
+#Some packages to install
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 
 BiocManager::install("tximport")
 BiocManager::install("DRIMSeq")
 BiocManager::install("DEXSeq")
-BiocManager::install("DESeq2")
+#BiocManager::install("DESeq2")
 BiocManager::install("stageR")
 library(DEXSeq)
 library(DRIMSeq)
 library(tximport)
-libary(DESeq2)
+#libary(DESeq2)
 library(stageR)
 
 #Load in the sample information collected by Tyler, lists the sample name + condition
-
-sample_info <- read.csv("/2/scratch/amandaN/bio722_2021/group_project/data/dir.csv")
+sample_info <- read.csv("/home/amanda/bio722/group_project/data/dir.csv")
 
 # Making condition a factor
 sample_info$condition <- factor(sample_info$condition)
 table(sample_info$condition)
 
 #Read in salmon counts info
-setwd("/2/scratch/amandaN/bio722_2021/group_project/data")
+setwd("/home/amanda/bio722/group_project/data/")
 files<-file.path("salmon_counts",sample_info$sample_id,"quant.sf")
 names(files) <- sample_info$sample_id
 
-#Import the data
+#Note that tximport now has an option for the argument countsFromAbundance called dtuScaledTPM
+#Import the data using tximport
 txi <- tximport(files,
                 type="salmon",
                 txOut=TRUE,
                 countsFromAbundance="scaledTPM")
+
 
 #Create a counts object
 cts <- txi$counts
@@ -40,57 +41,78 @@ cts <- cts[rowSums(cts) > 0,]
 head(cts)
 
 
-#Import the gene to transcript identifier
+#Import the gene to transcript identifier, link transcripts to genes
 txdb <- read.table("txp_to_gene.tsv", col.names=c("TXNAME", "GENEID"))
 head(txdb)
 dim(txdb)
 
+#Make sure that the order of transcripts are consistent between the txdb object and the cts object
+#all(rownames(cts) == txdb$TXNAME)
+#Error, need to reorder both objects so that transcripts are in same order and info is correctly linked
+
 #How many genes match and don't match?
 table(rownames(cts) %in% txdb$TXNAME == TRUE)
 
-#Only want the genes that do match
-test <- txdb[match(rownames(cts),txdb$TXNAME),]
-
+#Only want the genes that do match, remove the ones that don't
 #Create txdb_match which is only the genes from txdb which are also in counts
 txdb_match <- txdb[txdb$TXNAME %in% rownames(cts),]
 
-#Create a cts that only has the matching genes.....
+#Create a cts_match which is only the genes from cts which are also in txdb
 cts_match <- cts[rownames(cts) %in% txdb_match$TXNAME,]
 
-#try odering cts_match and txdb_match so that genes appear in same order
+#Now they have the same number of rows
+dim(cts_match)
+dim(txdb_match)
+
+#Order cts_match and txdb_match so that genes appear in same order
 txdb_test <- txdb_match[order(txdb_match$TXNAME),]
 cts_test <- cts_match[order(rownames(cts_match)),]
 
-all(rownames(cts_test) == txdb_test$TXNAME)
+#Double check that order() didn't mess up the link between genes and transcripts
+txdb_match[txdb_match$GENEID == "FBgn0034198",]
+txdb_test[txdb_test$GENEID == "FBgn0034198",]
+#Match! Looks like order did what we expected it to do
+#Rename txdb_test to just txdb
+txdb <- txdb_test
+cts <- cts_test
+
+#Check again to make sure that everything is in the correct order
+all(rownames(cts) == txdb$TXNAME)
 
 # Build a data.frame with the gene ID,
 #the feature (transcript) ID,
 # and then columns for each of the samples
 
-counts <- data.frame(gene_id=txdb_test$GENEID,
-                     feature_id=txdb_test$TXNAME,
-                     cts_test)
+counts <- data.frame(gene_id=txdb$GENEID,
+                     feature_id=txdb$TXNAME,
+                     cts)
 
+### Data organization with DRIMSeq####
 
-# Merge the counts and samps data.frames
+# Merge the counts and sample_info data.frames by creating a dmDSdata object
+# which contains transcript counts and information about grouping samples into conditions
+#Make sure that there is a column in sample_info named sample_id for the next step (dmDSdata)
 d <- dmDSdata(counts=counts, samples=sample_info)
 
-# Pulling out first row means puling out transcripts of first gene
+#The dmDSdata object contains methods that DRIMSeq can use, such as:
 methods(class=class(d))
-counts(d[1,])[,1:4]
+
+# For example, pulling out first row means pulling out transcripts of first gene
+# This shows us the quantitations of each transcript for each sample of the first gene
+counts(d[1,])[,1:8]
 
 
+#### Sample filtering with DRIMSeq ####
 
-# Filtering out:
-# n = total sample number
-# n.small = smallest sample number
-# This command only keeps transcripts that:
-# (1) it has a count of at least 10 in at least n.small samples
-# (2) it has a relative abundance proportion of at least 0.1 in at least n.small samples
-# (3) the total count of the corresponding gene is at least 10 in all n samples
+# Now use the filtering tools in DRIMSeq to remove transcripts which may be troublesome for parameter estimation
+#(for example when the count of a gene is very low), this helps speed up the fitting later on)
+# Transcripts must have the following in order to pass through the filtering step:
+# A transcript must have a count of at least 10 in at least n.small samples
+# A transcript must have a relative abundance proportion of at least 0.1 in at least n.small samples
+# The total count of the corresponding gene must be at least 10 in all n samples
 
-n <- 9
-n.small <- 3
+n <- 6 # n = total number of samples we have
+n.small <- 3 # n.small = number of samples in our smallest group
 d <- dmFilter(d,
               min_samps_feature_expr=n.small, min_feature_expr=10,
               min_samps_feature_prop=n.small, min_feature_prop=0.1,
@@ -98,30 +120,33 @@ d <- dmFilter(d,
 d
 
 
-# Tabulating the number of times we see a gene ID
-# then, tabulating the output again
 
+#Now we can see how many genes have how many transcripts
 table(table(counts(d)$gene_id))
-
 
 #Create the design matrix
 design_full <- model.matrix(~condition, data=DRIMSeq::samples(d))
 colnames(design_full)
 
-# Estimate model parameters and check for DTU
-# first estimate the precision
-# Next, fit regression coefficients and perform
-# null hypothesis testing on the coefficient of interest
+#### Estimating model parameters ####
+#A results table is generated which contains only the genes that passed the filtering step
 
-set.seed(1)
-system.time({
-  d <- dmPrecision(d, design=design_full)
-  d <- dmFit(d, design=design_full)
-  d <- dmTest(d, coef=c("condition2", "condition3"))
-})
+set.seed(1) #Set the seed to make results reproducible
+
+#dmPrecision: (using the Dirichlet Multinomial model), dispersion is inversely related to precision
+d <- dmPrecision(d, design=design_full)
+#Plot precision
+plotPrecision(d)
+
+
+#dmFit: Fit regression coefficients using maximum likelihood gene level regression and fit transcript proportions
+d <- dmFit(d, design=design_full)
+
+#dmTest: Perform null hypothesis testing on the coefficient of interest
+d <- dmTest(d, coef="condition3")
+
 
 # Check results by making a results table
-
 # Per gene
 res <- DRIMSeq::results(d)
 head(res)
@@ -149,8 +174,6 @@ res.txp[idx.txp,]
 plotProportions(d, res$gene_id[idx], "condition")
 
 #### Stage R ####
-
-# Loading the full data, rather than the subset
 nrow(res)
 nrow(res.txp)
 
@@ -210,4 +233,63 @@ filt <- smallProportionSD(d)
 res.txp.filt$pvalue[filt] <- 1
 res.txp.filt$adj_pvalue[filt] <- 1
 res.txp
-res.txp[res.txp$adj_pvalue < 0.05,]
+
+#### DEXSEQ ####
+
+library(DEXSeq)
+
+# Making DEX object with counts
+
+sample.data <- DRIMSeq::samples(d)
+count.data <- round(as.matrix(counts(d)[,-c(1:2)]))
+dxd <- DEXSeqDataSet(countData=count.data,
+                     sampleData=sample.data,
+                     design=~sample + exon + condition:exon,
+                     featureID=counts(d)$feature_id,
+                     groupID=counts(d)$gene_id)
+dxd
+
+system.time({
+  dxd <- estimateSizeFactors(dxd)
+  dxd <- estimateDispersions(dxd, quiet=TRUE)
+  dxd <- testForDEU(dxd, reducedModel=~sample + exon)
+})
+
+# Extracting results table
+
+dxr <- DEXSeqResults(dxd, independentFiltering=FALSE)
+qval <- perGeneQValue(dxr)
+dxr.g <- data.frame(gene=names(qval),qval)
+dxr.g
+
+# Subsetting data
+
+columns <- c("featureID","groupID","pvalue")
+dxr <- as.data.frame(dxr[,columns])
+head(dxr)
+
+#### Dex StageR ####
+
+library(stageR)
+strp <- function(x) substr(x,1,15)
+pConfirmation <- matrix(dxr$pvalue,ncol=1)
+dimnames(pConfirmation) <- list(strp(dxr$featureID),"transcript")
+pScreen <- qval
+names(pScreen) <- strp(names(pScreen))
+tx2gene <- as.data.frame(dxr[,c("featureID", "groupID")])
+for (i in 1:2) tx2gene[,i] <- strp(tx2gene[,i])
+
+# Making object to test
+
+stageRObj <- stageRTx(pScreen=pScreen, pConfirmation=pConfirmation,
+                      pScreenAdjusted=TRUE, tx2gene=tx2gene)
+stageRObj <- stageWiseAdjustment(stageRObj, method="dtu", alpha=0.05)
+suppressWarnings({
+  dex.padj <- getAdjustedPValues(stageRObj, order=FALSE,
+                                 onlySignificantGenes=TRUE)
+})
+
+# Corrected P
+
+head(dex.padj)
+
