@@ -184,20 +184,22 @@ nrow(res.txp)
 
 # Start by constructing a vector of p-values (genes)
 pScreen <- res$pvalue
-strp <- function(x) substr(x,1,15)
-names(pScreen) <- strp(res$gene_id)
+#strp <- function(x) substr(x,1,15)
+#names(pScreen) <- strp(res$gene_id)
+names(pScreen) <- res$gene_id
 head(pScreen)
 
 # Construct a one column matrix of the confirmation p-values (transcripts)
 
 pConfirmation <- matrix(res.txp$pvalue, ncol=1)
-rownames(pConfirmation) <- strp(res.txp$feature_id)
+#rownames(pConfirmation) <- strp(res.txp$feature_id)
+rownames(pConfirmation) <- res.txp$feature_id
 head(pConfirmation)
 
 # Make a data frame with identifiers
 
 tx2gene <- res.txp[,c("feature_id", "gene_id")]
-for (i in 1:2) tx2gene[,i] <- strp(tx2gene[,i])
+#for (i in 1:2) tx2gene[,i] <- tx2gene[,i]
 head(tx2gene)
 
 # Do analysis
@@ -216,12 +218,32 @@ suppressWarnings({
 # Lists genes and transcripts that pass the alpha 0.05
 head(drim.padj)
 
-#### Post Hoc ####
+#how many unique genes show evidence for DTU?
+length(unique(drim.padj$gene))
 
+#More plotting messing around
+#This one is not significant
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0265137'], group_variable = "condition",
+plot_type = "ribbonplot")
+
+plotProportions(d, res$gene_id[res$gene_id == 'FBgn0265137'], "condition")
+
+#This one is significant for 2 Transcripts
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0031238'], group_variable = "condition",
+plot_type = "ribbonplot")
+
+#This one is significant for 1 transcript
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0085638'], group_variable = "condition",
+plot_type = "ribbonplot")
+
+
+
+
+
+#### Post Hoc for DRIMSeq####
 # Filtering out small effect size to correct for false discovery
-
-res.txp.filt <- DRIMSeq::results(d, level="feature")
-smallProportionSD <- function(d, filter=0.1) {
+#res.txp.filt <- DRIMSeq::results(d, level="feature")
+#smallProportionSD <- function(d, filter=0.1) {
   cts <- as.matrix(subset(counts(d), select=-c(gene_id, feature_id)))
   gene.cts <- rowsum(cts, counts(d)$gene_id)
   total.cts <- gene.cts[match(counts(d)$gene_id, rownames(gene.cts)),]
@@ -229,10 +251,13 @@ smallProportionSD <- function(d, filter=0.1) {
   propSD <- sqrt(rowVars(props))
   propSD < filter
 }
-filt <- smallProportionSD(d)
-res.txp.filt$pvalue[filt] <- 1
-res.txp.filt$adj_pvalue[filt] <- 1
-res.txp
+
+#filt <- smallProportionSD(d)
+#res.txp.filt$pvalue[filt] <- 1
+#res.txp.filt$adj_pvalue[filt] <- 1
+#res.txp.filt$pvalue
+
+
 
 #### DEXSEQ ####
 
