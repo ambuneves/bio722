@@ -221,24 +221,6 @@ head(drim.padj)
 #how many unique genes show evidence for DTU?
 length(unique(drim.padj$gene))
 
-#More plotting messing around
-#This one is not significant
-plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0265137'], group_variable = "condition",
-plot_type = "ribbonplot")
-
-plotProportions(d, res$gene_id[res$gene_id == 'FBgn0265137'], "condition")
-
-#This one is significant for 2 Transcripts
-plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0031238'], group_variable = "condition",
-plot_type = "ribbonplot")
-
-#This one is significant for 1 transcript
-plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0085638'], group_variable = "condition",
-plot_type = "ribbonplot")
-
-
-
-
 
 #### Post Hoc for DRIMSeq####
 # Filtering out small effect size to correct for false discovery
@@ -274,11 +256,10 @@ dxd <- DEXSeqDataSet(countData=count.data,
                      groupID=counts(d)$gene_id)
 dxd
 
-system.time({
-  dxd <- estimateSizeFactors(dxd)
-  dxd <- estimateDispersions(dxd, quiet=TRUE)
-  dxd <- testForDEU(dxd, reducedModel=~sample + exon)
-})
+
+dxd <- estimateSizeFactors(dxd)
+dxd <- estimateDispersions(dxd, quiet=TRUE)
+dxd <- testForDEU(dxd, reducedModel=~sample + exon)
 
 # Extracting results table
 
@@ -293,16 +274,35 @@ columns <- c("featureID","groupID","pvalue")
 dxr <- as.data.frame(dxr[,columns])
 head(dxr)
 
+#compare dxr to res.txp to see if same number of significant hits
+dim(res.txp)
+dim(dxr)
+
+#Compare number of significant (adjusted and non adjusted)
+dim(dxr[dxr$pvalue < 0.05,])
+dim(res.txp[res.txp$adj_pvalue < 0.05,])
+dim(res.txp[res.txp$pvalue < 0.05,])
+
+#Subset only the significant p-values
+dxr_signif <- dxr[dxr$pvalue < 0.05,]
+res.txp_signif <- res.txp[res.txp$adj_pvalue < 0.05,]
+
+#How many matching significant p-values between DRIMSeq and DEXSEq (BEFORE StageR)
+length(which(dxr_signif$featureID %in% res.txp_signif$feature_id == TRUE))
+
+#Create new tables that are just the matches between StageR and DEXSeq
+drim.match <- res.txp_signif[which(res.txp_signif$feature_id %in% dxr_signif$featureID == TRUE),]
+dex.match <- dxr_signif[which(dxr_signif$featureID %in% res.txp_signif$feature_id == TRUE),]
+
+
 #### Dex StageR ####
 
 library(stageR)
-strp <- function(x) substr(x,1,15)
 pConfirmation <- matrix(dxr$pvalue,ncol=1)
-dimnames(pConfirmation) <- list(strp(dxr$featureID),"transcript")
+dimnames(pConfirmation) <- list(dxr$featureID,"transcript")
 pScreen <- qval
-names(pScreen) <- strp(names(pScreen))
+names(pScreen) <- names(pScreen)
 tx2gene <- as.data.frame(dxr[,c("featureID", "groupID")])
-for (i in 1:2) tx2gene[,i] <- strp(tx2gene[,i])
 
 # Making object to test
 
@@ -315,6 +315,69 @@ suppressWarnings({
 })
 
 # Corrected P
-
 head(dex.padj)
 
+#Compare adjusted DRIMSeq to adjusted DEXSeq
+dim(dex.padj) #226 significant genes
+dim(drim.padj) #181 significant genes
+
+#Only the number of significant transcripts
+dex.stage_signif <- dex.padj[dex.padj$transcript < 0.05,]
+drim.stage_signif <- drim.padj[drim.padj$transcript < 0.05,]
+
+dim(dex.stage_signif) #150 significant transcripts
+dim(drim.stage_signif) #81 significant transcripts
+
+#Compare transcript p-values
+length(dex.stage_signif$txID %in% drim.stage_signif$txID == TRUE) #DRIMSeq more conservative than DEXSeq
+
+#Is the br gene in our sample?
+FBgn0283451 #broad
+TXNAME      GENEID
+49642 FBtr0070261 FBgn0283451
+49644 FBtr0070263 FBgn0283451
+49645 FBtr0070265 FBgn0283451
+49647 FBtr0300427 FBgn0283451
+49648 FBtr0300428 FBgn0283451
+49650 FBtr0303562 FBgn0283451
+49651 FBtr0303563 FBgn0283451
+49652 FBtr0303564 FBgn0283451
+49653 FBtr0308319 FBgn0283451
+49654 FBtr0330406 FBgn0283451
+49655 FBtr0332293 FBgn0283451
+#It's in our txdb
+txdb[txdb$GENEID == 'FBgn0283451',]
+#It's in res but not significant?
+res[res$gene_id == 'FBgn0283451',]
+res.txp[res.txp$gene_id == 'FBgn0283451',]
+
+#Plotting broad....
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0283451'], group_variable = "condition",
+plot_type = "ribbonplot") #looks like nothing changed? Why is broad in both?
+
+#Check transcripts of broad counts
+cts[rownames(cts) == 'FBtr0070263',]
+cts[rownames(cts) == 'FBtr0303562',]
+cts[rownames(cts) == 'FBtr0303564',]
+cts[rownames(cts) == 'FBtr0308319',]
+
+#Broad downstream effects
+Stubble (Sb), zipper, Rho1, Tropomyosin 1, blistered, and ImpE3
+
+
+#Plotting the genes with significant transcripts
+#This one is not significant
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0265137'], group_variable = "condition",
+plot_type = "ribbonplot")
+
+plotProportions(d, res$gene_id[res$gene_id == 'FBgn0265137'], "condition")
+
+#This one is significant for 2 Transcripts
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0031238'], group_variable = "condition",
+plot_type = "ribbonplot")
+
+#This one is significant for 1 transcript
+plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0085638'], group_variable = "condition",
+plot_type = "ribbonplot")
+
+#Save .csv files
