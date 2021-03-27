@@ -478,10 +478,7 @@ plotDispEsts( dxd )
 So far in the pipeline, the intermediate and final results have been stored in the meta data of a DEXSeqDataSet object, they can be accessed using the function `mcols()`. In order to summarize the results without showing the values from intermediate steps, we call the function `DEXSeqResults()`. The result is a DEXSeqResults object, which is a subclass of a DataFrame object.
 ```
 dxr <- DEXSeqResults(dxd, independentFiltering=FALSE)
-qval <- perGeneQValue(dxr)
-##############dxr.g <- data.frame(gene=names(qval),qval)
-##################dxr.g
-################ Raj, what is this??
+
 ```
 
 Next we can subset the data to get a list of genes, their associated transcripts, and the p-values for each transcript. We can also look at out gene of interest.
@@ -492,20 +489,13 @@ columns <- c("featureID","groupID","pvalue")
 dxr <- as.data.frame(dxr[,columns])
 head(dxr)
 
-dxr_br <- as.data.frame(dxr[,br])
+dxr_br <- as.data.frame(dxr[,columns])
 indices <- which(dxr_br$groupID == "FBgn0283451")
 broad <- dxr_br[indices, ]
 broad
 ```
 
 It looks like all our transcripts are significant in DexSeq!
-
-#### Visualization of Results
-
-The `plotDEXSeq()` function provides a means to visualize the results of an analysis. The plot represents the expression estimates from a call to `testForDEU()`. Shown in red is the transcript that showed significant differential transcript usage.
-```
-plotDEXSeq( dxr2, "FBgn0010909", legend=TRUE, cex.axis=1.2, cex=1.3, lwd=2)
-```
 
 ### Dex StageR to correct for OFDR
 Like we did with DRIMSeq, we again use stageR to correct for OFDR, this time we input the p-values obtained from DEXSeq
@@ -530,6 +520,13 @@ suppressWarnings({
 
 head(dex.padj)
 ```
+
+Finally, after correction with StageR, did DEXSeq find broad or any of its transripts to be significant?
+```
+dex.padj[dex.padj$geneID == 'FBgn0283451',]
+```
+DEXSeq found each transcript of broad to be significant (even after OFDR correction), whereas DRIMSeq found only 1 to be significant.
+We can further compare and contrast the results of DRIMSeq and DEXSeq:
 
 ### Compare DRIMSeq's drim.padj with DEXSeq's dex.padj
 Next we compare the results from DRIMSeq to the results from DEXSeq
