@@ -18,6 +18,9 @@ Using drosophila leg imaginal discs (developing leg tissue), Rice et al. (2019) 
 To investigate the change in isoform usage Rice et al. (2019) used a Northern blot to look for isoform expression changes between larval and prepupal stages of development. They detected an isoform switch between Z1 and Z2 between these life stages. Although they extracted RNA for a seperate experiment, they did not use it to verify this isoform switch. Today, we will use their RNA-seq data to look for DTU and try and detect the isoform switch that the Northern blot detected.
 
 
+![image of northern blot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/nblot.png)
+
+
 For the raw sequence files, you can use  fastq-dump from the SRA toolkit to download the files from SRA directly. This data will need to be processed (trimmed and QC). **Don't run this now, we have provided the salmon quant files for you for the tutorial**:
 ```
 /usr/local/sratoolkit/fastq-dump.2.8.2 SRR10434729 SRR10434730 SRR10434731 SRR10434723 SRR10434724 SRR10434725
@@ -306,6 +309,9 @@ We can take a look at our precision plot. It will look inverse to what we expect
 #Will not work if lp_res.csv has been read in.
 plotPrecision(d)
 ```
+
+![image of dispersion plot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/plot_disp.png)
+
 Now we fit the data and preform p-value testing:
 
 ```
@@ -563,3 +569,5 @@ For the grand finale, let's visualize the DTU we see within broad and see what c
 plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0283451'], group_variable = "condition",
                 plot_type = "ribbonplot")
 ```
+
+![image of DTU plot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/plot_broad-DTU.png)
