@@ -12,6 +12,11 @@ We are working with data from a submission titled [ Genome-wide differences in R
 
 The SRAToolkit Allows you to directly download data from SRA using the command line, you just need the data's SRA number. You can find this by clicking on SRA on the project's GEO page. 
 
+For the raw sequence files, you can use  fastq-dump from the SRA toolkit to download the files from SRA directly. This data will need to be processed (trimmed and QC). **Don't run this now, we have provided the salmon quant files for you for the tutorial**:
+```
+/usr/local/sratoolkit/fastq-dump.2.8.2 SRR10434729 SRR10434730 SRR10434731 SRR10434723 SRR10434724 SRR10434725
+```
+
 
 #### More information on the data we are using
 Using drosophila leg imaginal discs (developing leg tissue), Rice et al. (2019) studied the factors regulating tissue morphogenesis during developemnt. Ecydosone is known to be an important signal for tissue development. It acts through a transcriptional cascade to induce several downstream factors including the transcription of genes such as broad (*br*), which is known to have direct effects on imaginal disc morphogenesis. *br* encodes for four zinc-binding domain isoforms (Z1, Z2, Z3, Z4), with eleven mRNA transcripts coding for. This means multiple transcripts code for the same isoforms. Additionally, these four isoforms exhibit differential usage according to the tissue they are expressed in and on the stage of development. 
@@ -21,10 +26,6 @@ To investigate the change in isoform usage Rice et al. (2019) used a Northern bl
 ![image of northern blot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/nblot.png)
 
 
-For the raw sequence files, you can use  fastq-dump from the SRA toolkit to download the files from SRA directly. This data will need to be processed (trimmed and QC). **Don't run this now, we have provided the salmon quant files for you for the tutorial**:
-```
-/usr/local/sratoolkit/fastq-dump.2.8.2 SRR10434729 SRR10434730 SRR10434731 SRR10434723 SRR10434724 SRR10434725
-```
 
 ## Data Processing
 
@@ -74,18 +75,20 @@ files=(${sample_dir}/*.fastq)
    done
 ```
 
-**Processed Data for this tutorial is located in:**
+**scp the processed data to your desktop:**
 ```
-/2/scratch/amandaN/bio722_2021/group_project/data/bio722_dtu_tutorial
+scp -r USERNAME@info.mcmaster.ca:/home/amanda/bio722_dtu_tutorial .
 ```
-`scp` the directory `/bio722_dtu_tutorial` to your local desktop so that we can use the quant data for analysis 
 
-**This has already been trimmed and counted. This directory also includes the output for the most time consuming step, and all the required csv files needed.**
 
-# **This is where our tutorial will begin.**
+**This data has already been trimmed and counted. This directory also includes the output for the most time consuming step, and all the required csv files needed.**
 
-## Data Analysis in R
 
+
+# **Data Analysis in R**
+
+
+## Import and process counts data 
 First we install the required packages. If you already have these installed, just load the required libraries. 
 ```
 ##Package Installation
@@ -113,18 +116,13 @@ library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)#dmel transcriptome database
 ```
 Set your working directory to  `/bio722_dtu_tutorial`
 
-`sample_info.csv` is a .csv file we created to keep track of which sample belongs to what condition. We constructed this table using [information from SRA](https://www.ncbi.nlm.nih.gov/sra?term=SRP229602/). We load in this file as `sample_info`, which has two columns, one for sample id and one for condition: 
-stage l = larval 
-stage pp = prepupae
+```
+setwd("path../to../bio722_dtu_tutorial")
 
-> sample_id,stage
-SRR10434723_1_trim_quant,l
-SRR10434724_1_trim_quant,l
-SRR10434725_1_trim_quant,l
-SRR10434726_1_trim_quant,pp
-SRR10434727_1_trim_quant,pp
-SRR10434728_1_trim_quant,pp
-
+#If you are on a mac and scp'd to your desktop the path will
+#look something like this:
+#setwd("/Users/amandan/Desktop/bio722_dtu_tutorial")
+```
 
 
 ```
@@ -153,7 +151,7 @@ txi <- tximport(files,
 cts <- txi$counts
 ```
 
-Now subset to remove the transcript counts that are below zero:
+Now subset to remove the transcript counts that are zero:
 ```
 dim(cts)
 #subset so we only have the transcript counts that are above zero
@@ -217,7 +215,7 @@ txdb[txdb$GENEID == "FBgn0034198",]
 all(rownames(cts) == txdb$TXNAME)
 ```
 
-### Statistical analysis of DTU with DrimSeq
+## Statistical analysis of DTU with DrimSeq
 
 Build a data.frame that links the gene ID, transcript ID, 
 and count data. This will be important for DRIMSeq analysis and building 
