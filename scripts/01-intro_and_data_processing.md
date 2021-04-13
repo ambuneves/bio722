@@ -231,4 +231,4 @@ txdb[txdb$GENEID == "FBgn0034198",]
 all(rownames(cts) == txdb$TXNAME)
 ```
 
-For the next part of the tutorial, which will cover DTU analysis in DRIMSeq and OFDR control in StageR, [click here](link) 
+For the next part of the tutorial, which will cover DTU analysis in DRIMSeq and OFDR control in StageR, [click here](https://github.com/ambuneves/bio722_group-project/blob/main/scripts/02-drimseq_stageR.md) 
