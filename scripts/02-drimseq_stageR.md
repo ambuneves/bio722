@@ -228,4 +228,4 @@ It appears that 1 of the 4 transcripts for broad show significance for DTU.
 
 Now we can see if we find different results using DEXSeq 
 
-For the next part of the tutorial, which covers DTU analysis with DEXSeq and OFDR control with StageR, [click here](link)
+For the next part of the tutorial, which covers DTU analysis with DEXSeq and OFDR control with StageR, [click here](https://github.com/ambuneves/bio722_group-project/blob/main/scripts/03-dexseq_stageR.md)
