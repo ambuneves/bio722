@@ -112,4 +112,4 @@ Finally, after correction with StageR, did DEXSeq find broad or any of its trans
 dex.padj[dex.padj$geneID == 'FBgn0283451',]
 ```
 
-For the next part of the tutorial, which looks at some plots and compares DRIMSeq to DEXSeq, [click here](link)
+For the next part of the tutorial, which looks at some plots and compares DRIMSeq to DEXSeq, [click here](https://github.com/ambuneves/bio722_group-project/blob/main/scripts/04-plots_and_comparisons.md)
