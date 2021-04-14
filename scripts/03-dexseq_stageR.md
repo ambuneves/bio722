@@ -1,4 +1,3 @@
-
 ## DTU with DEXSEQ
 
 We can test for DTU with DEXSeq as well to see if we can corroborate our results. To do this we need to make a DEXSeq object that has our count data. We make our DEXSeq object using our DRIMSeq object samples to avoid re-doing the filtering. We can then extract our count data from our counts data frame. Although this code says we are using "exons", assume it says "transcripts" for our purposes. Where it says DEU (differential exon usage), assume it means DTU (differential transcript usage).
@@ -46,6 +45,8 @@ dxd <- estimateDispersions(dxd, quiet=TRUE)
   As a shrinkage diagnostic, the DEXSeqDataSet inherits the method  `plotDispEsts()` that plots the per-transcript dispersion estimates versus the mean normalised count, the resulting fitted values and the a posteriori (shrinked) dispersion estimates.
 ```
 plotDispEsts(dxd)
+#You can also remove the legend if it is being annoying
+plotDispEsts(dxd, legend = FALSE)
 ```
 
 ![image of dispersion plot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/plot_disp_ests.png )
