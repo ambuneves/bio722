@@ -41,11 +41,16 @@ Our data likely contains transcripts that will be troublesome for analysis, or t
 
 In this code, n is our total number of samples, n.small is the size of our conditions sample size (if sample sizes are different it is the size of the smallest sample). We then run it through the filtering steps to remove genes with expression lower than 10TPM or that are expressed in the bottom 0.1% of transcripts.
 
+We can visualize the data in `d` using the `plotData()` function which comes with DRIMSeq
+
 ```
-#look at d before filtering:
-d
+#plot transcripts prior to filtering 
+plotData(d)
+```
 
+![image of plotData(d) plot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/plotData_before.png)
 
+```
 #define sample numbers:
 n <- 6 #number of samples 
 n.small <- 3 #smallest number of samples within each group
@@ -66,6 +71,16 @@ Now we can see how many genes have how many transcripts.
 ```
 table(table(counts(d)$gene_id))
 ```
+
+We can also visualize this data as a histogram again
+
+```
+#plot transcripts after filtering 
+plotData(d)
+```
+
+![image of plotData(d) plot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/plotdata_after.png)
+
 None of these have eleven associated transcripts, so it's clear the lowly expressed transcripts of broad were filtered out. We can check that again by re-running our `counts()` function.
 ````
 counts(d["FBgn0283451"])
@@ -158,6 +173,18 @@ res[which(res$gene_id == 'FBgn0283451'),]
 ```
 It looks like, at the gene level, there is evidence for DTU occuring within broad!
 
+We can also visualize our p-values at either the gene or transcript level using the function `plotPValues()`, let's take a look at these:
+
+```
+#At the gene level
+plotPValues(d)
+
+#At the transcript level
+plotPValues(d, level = "feature")
+```
+![image of gene p values](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/pvals_genes.png)
+
+![image of transcript p values](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/pvals_transcripts.png)
 
 ### StageR for OFDR adjustment
 
@@ -173,7 +200,6 @@ First we ask "which genes contain any evidence of DTU" by passing the gene p-val
 pScreen <- res$pvalue
 names(pScreen) <- res$gene_id
 head(pScreen)
-
 ```
 
 ```
@@ -227,5 +253,6 @@ Let's take a look at broad again:
 It appears that 1 of the 4 transcripts for broad show significance for DTU.
 
 Now we can see if we find different results using DEXSeq 
+
 
 For the next part of the tutorial, which covers DTU analysis with DEXSeq and OFDR control with StageR, [click here](https://github.com/ambuneves/bio722_group-project/blob/main/scripts/03-dexseq_stageR.md)
