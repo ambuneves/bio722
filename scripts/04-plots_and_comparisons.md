@@ -60,4 +60,4 @@ plotProportions(d, gene_id = res$gene_id[res$gene_id == 'FBgn0283451'], group_va
 ```
 ![image of lineplot](https://github.com/ambuneves/bio722_group-project/blob/main/outputs/dtu_line.png)
 
-That's the end of our tutorial on DTU analysis using DRIMSeq and DEXSeq! Thanks for joining us 🦖
+###That's the end of our tutorial on DTU analysis using DRIMSeq and DEXSeq! Thanks for joining us 🦖
