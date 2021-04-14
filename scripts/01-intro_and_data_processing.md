@@ -2,7 +2,7 @@
 Differential transcript usage is a method used to detect differences in transcript isoform usage within a gene (Love, 2018). This is interesting because depending on how the transcripts are differentially expressed within a gene, the total gene expression might not change by much. This would suggest a negative result. However, DTU could show a difference between conditions where DTE is not present (Love, 2018). Therefore, DTU can be seen as a complementary analysis to DGE, in cases where gene proportions do not change (Love, 2018). DTU may be present as a result of alternative splicing and changes to the coding sequence of the transcript, and DTU has been associated with cancer and Parkinson’s disease (Dick et al.,2020).
 
 
-## Data Provenance
+## Introduction
 
 #### Download data from GEO Through SRA 
 
@@ -30,10 +30,12 @@ To investigate the change in isoform usage Rice et al. (2019) used a Northern bl
 
 ## Data Processing
 
-We downloaded the raw data, so we will need to trim the adapters and do a quality check. We used trimmomatic to trim the data, and fastqc to check the data before and after trimming. Note the `SE` in the loop, which specifies we are working with single-end data. 
+We downloaded **raw data**, so we will need to trim the adapters and do a quality check. We used trimmomatic to trim the data, and fastqc to check the data before and after trimming. Note the `SE` in the loop, which specifies we are working with single-end data. 
 
 
 ```
+#TRIMMOMATIC FOR LOOP FOR SINGLE END READS 
+
 #!/bin/bash
 #For loop to go through all of the files in a directory:
 raw_dir=path/to/data
@@ -86,10 +88,9 @@ scp -r USERNAME@info.mcmaster.ca:/home/amanda/bio722_dtu_tutorial .
 
 
 
-# **Data Analysis in R**
+## Setting up the data in R
 
-
-## Import and process counts data 
+ 
 First we install the required packages. If you already have these installed, just load the required libraries. 
 ```
 ##Package Installation
@@ -230,5 +231,6 @@ txdb[txdb$GENEID == "FBgn0034198",]
 #check all names are matching and in right order 
 all(rownames(cts) == txdb$TXNAME)
 ```
+
 
 For the next part of the tutorial, which will cover DTU analysis in DRIMSeq and OFDR control in StageR, [click here](https://github.com/ambuneves/bio722_group-project/blob/main/scripts/02-drimseq_stageR.md) 
